@@ -41,6 +41,7 @@ enemies = [
         "gold_given": 6,
         "exp_given": 8,
         "pet": {
+            "name": "Hawk",
             "health": 2,
             "damage": 2,
             "speed": 8
@@ -157,35 +158,71 @@ def armory():
             return
 
 def battle():
-    print("You enter the arena.")
+    print(f"{hero["name"]} enters the arena.")
 
     for enemy in enemies:
-        if enemy["defeated"] == True:
-            continue
-        elif enemy["defeated"] == False:
-            print(f"You have encountered {enemy["name"]}.")
+        if enemy["defeated"] == False:
+            print(f"The {enemy["name"]} challenges {hero["name"]}.\n"
+                  "The battle begins.")
 
-            while enemy["health"] > 0 or hero["health"] > 0:
-                    action = input(f"Choose your next move: Attack / Verbal Joust ").strip().lower()
+            while enemy["health"] > 0 and hero["health"] > 0:
+                if hero["speed"] > enemy["speed"]:
+                    hero_action(enemy)
+                    if enemy["health"] > 0:
+                        enemy_action(enemy)
 
-                    while action not in ["attack", "verbal joust"]:
-                        action = input("Please choose Attack or Verbal Joust. ")
+                elif enemy["speed"] > hero["speed"]:
+                    enemy_action(enemy)
+                    if hero["health"] > 0:
+                        hero_action(enemy)
 
-                    if action == "attack" and hero["speed"] >= enemy["speed"]:
-                        print(f"{hero["name"]} attacks the {enemy["name"]}!")
-                        enemy["health"] -= weapons[hero["weapon"]]["damage"]
+                elif hero["speed"] == enemy["speed"]:
+                    turn_order = [hero_action, enemy_action]
+                    random.shuffle(turn_order)
+                    for turn in turn_order:
+                        turn(enemy)
+                        if hero["health"] <= 0 or enemy["health"] <= 0:
+                            break
 
-                    elif action == "attack" and hero["speed"] < enemy["speed"]:
-                        print(f"{enemy["name"]} attacks {hero["name"]}")
-                        hero["health"] -= enemy["damage"]
-                    elif action == "verbal joust" and hero["speed"] >= enemy["speed"]:
-                        print(f"{hero["name"]} points at {enemy["name"]} and shouts, '{random.choice(verbal_jousts)}'")
-                        enemy["speed"] -= 2
+            if hero["health"] <= 0 and enemy["health"] > 0:
+                print(f"{hero["name"]} has been defeated and is carted out of the arena. ")
+                armory()
+                break
+            
+            elif hero["health"] > 0 and enemy["health"] <= 0:
+                print(f"{enemy["name"]} has been defeated.")
+                print(f"{hero["name"]} gains {enemy["exp_given"]} exp.")
+                hero["exp"] += enemy["exp_given"]
+                print(f"{hero["name"]} gains {enemy["gold_given"]} gold.")
+                hero["gold"] += enemy["gold_given"]
+                enemy["defeated"] = True
 
-                    elif action == "attack" or action == "verbal joust" and enemy["speed"] > hero["speed"]:
-                        print(f"{enemy["name"]} attacks!")
-                        hero["health"] -= enemy["damage"]
+def hero_action(enemy):
+    action = input("Choose your next action. Attack / Verbal Joust ").strip().lower()
 
+    while action not in ["attack", "verbal joust"]:
+        action = input("Please choose Attack or Verbal Joust. ")
 
+    if action == "attack":
+        print(f"{hero["name"]} attacks {enemy["name"]}!")
+        enemy["health"] -= weapons[hero["weapon"]]["damage"]
+        print(f"{enemy["name"]} Health: {enemy["health"]}")
+    elif action == "verbal joust":
+        print(f"{hero["name"]} insults the {enemy["name"]}!")
+        print(random.choice(verbal_jousts))
+        if enemy["speed"] <= 1:
+            print(f"{enemy["name"]}'s speed cannot be lowered any further.")
+        else:
+            enemy["speed"] -= 1
 
-main()
+def enemy_action(enemy):
+    if "pet" in enemy:
+        print(f"The {enemy["name"]}'s {enemy["pet"]["name"]} attacks!")
+        hero["health"] -= enemy["pet"]["damage"]
+        print(f"Hero Health: {hero["health"]}")
+
+    print(f"The {enemy["name"]} attacks!")
+    hero["health"] -= enemy["damage"]
+    print(f"Hero Health: {hero["health"]}")
+
+battle()
