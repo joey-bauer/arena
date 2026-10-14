@@ -6,7 +6,8 @@ hero = {
     "race": "",
     "level": 1,
     "health": 10,
-    "speed": 3,
+    "max health": 30,
+    "speed": 15,
     "gold": 5,
     "exp": 0,
     "weapon": "wood sword"
@@ -36,6 +37,7 @@ enemies = [
 
     {
         "name": "Beastmaster",
+        "health": 8,
         "damage": 5,
         "speed": 2,
         "gold_given": 6,
@@ -75,7 +77,7 @@ weapons = {
     "wood sword": {
         "name": "Wood Sword",
         "gold": 1,
-        "damage": 1
+        "damage": 5
     },
 
     "dagger": {
@@ -104,7 +106,16 @@ verbal_jousts = [
 ]
 
 def main():
-    battle()
+    character_creation()
+
+    while True:
+        armory()
+        if all(enemy["defeated"] for enemy in enemies):
+            break
+
+    print(f"{hero["name"]} has conquered the arena.")
+            
+    
 
 
 def character_creation():
@@ -123,16 +134,16 @@ def character_creation():
 
     print(
         f"Welcome, {hero["name"]}, to The Arena. Defeat enemies to escape.\n"
-        "Visit the shop between matches to upgrade your gear."
+        "Visit the armory between matches to upgrade your gear."
     )
 
 def armory():
     print("Welcome to The Armory! Gear up for your next battle.")
     while True:
-        buy_or_sell = input("Are you looking to buy or sell? Or would you like to exit? ").strip().lower()
+        buy_or_sell = input("Are you looking to buy or sell? Or would you like to enter the arena? ").strip().lower()
 
-        while buy_or_sell not in ["buy", "sell", "exit"]:
-            buy_or_sell = input("Please enter buy, sell, or exit ").strip().lower()
+        while buy_or_sell not in ["buy", "sell", "enter", "enter arena", "enter the arena"]:
+            buy_or_sell = input("Please enter buy, sell, or enter the arena. ").strip().lower()
 
         if buy_or_sell == "buy":
             for weapon in weapons:
@@ -154,48 +165,52 @@ def armory():
                 else:
                     break
 
-        elif buy_or_sell == "exit":
+        elif buy_or_sell in ["enter", "enter arena", "enter the arena"]:
+            battle()
             return
 
 def battle():
+    hero["health"] = hero["max health"]
+
     print(f"{hero["name"]} enters the arena.")
 
     for enemy in enemies:
-        if enemy["defeated"] == False:
-            print(f"The {enemy["name"]} challenges {hero["name"]}.\n"
-                  "The battle begins.")
-
-            while enemy["health"] > 0 and hero["health"] > 0:
-                if hero["speed"] > enemy["speed"]:
-                    hero_action(enemy)
-                    if enemy["health"] > 0:
-                        enemy_action(enemy)
-
-                elif enemy["speed"] > hero["speed"]:
+        if enemy["defeated"] == True:
+            continue
+        print(f"The {enemy["name"]} challenges {hero["name"]}.\n"
+              "The battle begins.")
+        while enemy["health"] > 0 and hero["health"] > 0:
+            if hero["speed"] > enemy["speed"]:
+                hero_action(enemy)
+                if enemy["health"] > 0:
                     enemy_action(enemy)
-                    if hero["health"] > 0:
-                        hero_action(enemy)
+            elif enemy["speed"] > hero["speed"]:
+                enemy_action(enemy)
+                if hero["health"] > 0:
+                    hero_action(enemy)
+            elif hero["speed"] == enemy["speed"]:
+                turn_order = [hero_action, enemy_action]
+                random.shuffle(turn_order)
+                for turn in turn_order:
+                    turn(enemy)
+                    if hero["health"] <= 0 or enemy["health"] <= 0:
+                        break
+        if hero["health"] <= 0 and enemy["health"] > 0:
+            print(f"{hero["name"]} has been defeated and is carted out of the arena. ")
+            armory()
+            break
+        
+        elif hero["health"] > 0 and enemy["health"] <= 0:
+            print(f"{enemy["name"]} has been defeated.")
+            print(f"{hero["name"]} gains {enemy["exp_given"]} exp.")
+            hero["exp"] += enemy["exp_given"]
+            print(f"{hero["name"]} gains {enemy["gold_given"]} gold.")
+            hero["gold"] += enemy["gold_given"]
+            enemy["defeated"] = True
 
-                elif hero["speed"] == enemy["speed"]:
-                    turn_order = [hero_action, enemy_action]
-                    random.shuffle(turn_order)
-                    for turn in turn_order:
-                        turn(enemy)
-                        if hero["health"] <= 0 or enemy["health"] <= 0:
-                            break
-
-            if hero["health"] <= 0 and enemy["health"] > 0:
-                print(f"{hero["name"]} has been defeated and is carted out of the arena. ")
-                armory()
-                break
-            
-            elif hero["health"] > 0 and enemy["health"] <= 0:
-                print(f"{enemy["name"]} has been defeated.")
-                print(f"{hero["name"]} gains {enemy["exp_given"]} exp.")
-                hero["exp"] += enemy["exp_given"]
-                print(f"{hero["name"]} gains {enemy["gold_given"]} gold.")
-                hero["gold"] += enemy["gold_given"]
-                enemy["defeated"] = True
+        if enemy["defeated"] == True:
+            print(f"{hero["name"]} is the winner! You gather your rewards and return to the armory.")
+            break
 
 def hero_action(enemy):
     action = input("Choose your next action. Attack / Verbal Joust ").strip().lower()
@@ -225,4 +240,4 @@ def enemy_action(enemy):
     hero["health"] -= enemy["damage"]
     print(f"Hero Health: {hero["health"]}")
 
-battle()
+main()
