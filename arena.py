@@ -6,7 +6,7 @@ hero = {
     "race": "",
     "level": 1,
     "health": 10,
-    "max health": 30,
+    "max health": 20,
     "speed": 15,
     "gold": 5,
     "exp": 0,
@@ -21,7 +21,7 @@ enemies = [
         "damage": 1,
         "speed": 1,
         "gold_given": 3,
-        "exp_given": 4,
+        "exp_given": 2,
         "defeated": False
     },
 
@@ -31,7 +31,7 @@ enemies = [
         "damage": 3,
         "speed": 4,
         "gold_given": 4,
-        "exp_given": 6,
+        "exp_given": 3,
         "defeated": False
     },
 
@@ -41,7 +41,7 @@ enemies = [
         "damage": 5,
         "speed": 2,
         "gold_given": 6,
-        "exp_given": 8,
+        "exp_given": 5,
         "pet": {
             "name": "Hawk",
             "health": 2,
@@ -57,7 +57,7 @@ enemies = [
         "damage": 10,
         "speed": 7,
         "gold_given": 10,
-        "exp_given": 15,
+        "exp_given": 5,
         "defeated": False
     },
 
@@ -67,7 +67,7 @@ enemies = [
         "damage": 8,
         "speed": 1,
         "gold_given": 8,
-        "exp_given": 12,
+        "exp_given": 0,
         "defeated": False
     }
 ]
@@ -77,7 +77,7 @@ weapons = {
     "wood sword": {
         "name": "Wood Sword",
         "gold": 1,
-        "damage": 5
+        "damage": 1
     },
 
     "dagger": {
@@ -109,15 +109,21 @@ def main():
     character_creation()
 
     while True:
-        armory()
+        menu_selection = input("Choose your next action: Enter Armory | Check Inventory | Battle ").strip().lower()
+        if menu_selection not in ["enter armory", "armory", "check inventory", "inventory", "battle"]:
+            menu_selection = input("Please choose one of the following: Enter Armory | Check Inventory | Battle `")
+        elif menu_selection in ["enter armory", "armory"]:
+            armory()
+        elif menu_selection in ["check inventory", "inventory"]:
+            inventory()
+        elif menu_selection in ["battle", "arena"]:
+            battle()
+
         if all(enemy["defeated"] for enemy in enemies):
             break
 
     print(f"{hero["name"]} has conquered the arena.")
             
-    
-
-
 def character_creation():
     hero["name"] = input("What is your name? ")
     hero["race"] = input("Are you a human, elf, or dwarf? ").strip().lower()
@@ -128,9 +134,9 @@ def character_creation():
     if hero["race"] == "human":
         hero["gold"] += 5
     elif hero["race"] == "dwarf":
-        hero["health"] += 1
+        hero["max health"] += 2
     elif hero["race"] == "elf":
-        hero["speed"] += 1
+        hero["speed"] += 2
 
     print(
         f"Welcome, {hero["name"]}, to The Arena. Defeat enemies to escape.\n"
@@ -140,19 +146,28 @@ def character_creation():
 def armory():
     print("Welcome to The Armory! Gear up for your next battle.")
     while True:
-        buy_or_sell = input("Are you looking to buy or sell? Or would you like to enter the arena? ").strip().lower()
+        buy_or_sell = input("Are you looking to buy, sell, or exit? ").strip().lower()
 
-        while buy_or_sell not in ["buy", "sell", "enter", "enter arena", "enter the arena"]:
-            buy_or_sell = input("Please enter buy, sell, or enter the arena. ").strip().lower()
+        while buy_or_sell not in ["buy", "sell", "exit"]:
+            buy_or_sell = input("Please enter buy or sell. ").strip().lower()
 
         if buy_or_sell == "buy":
             for weapon in weapons:
-                print(f"{weapons[weapon]["name"]}: {weapons[weapon]["gold"]}\n")
+                print(f"{weapons[weapon]["name"]}: {weapons[weapon]["gold"]} gold\n")
 
-            purchase = input("What weapon would you like to buy? ").strip().lower()
+            purchase = input("What weapon would you like to buy? If you do not want to purchase a weapon, choose none. ").strip().lower()
 
-            if purchase in weapons:
+            while purchase not in weapons:
+                purchase = input("Please select one of the above weapons. ").strip().lower()
+            
+            if purchase in weapons and hero["gold"] < weapons[purchase]["gold"]:
+                print(f"You do not have enough gold to buy the {purchase}.")
+                return
+            elif purchase in weapons:
                 hero["weapon"] = purchase
+                hero["gold"] -= weapons[hero["weapon"]]["gold"]
+                print(f"{hero["name"]} purchased the {purchase}.")
+                print(f"Current Gold: {hero["gold"]}")
 
         elif buy_or_sell == "sell":
             while True:
@@ -165,9 +180,24 @@ def armory():
                 else:
                     break
 
-        elif buy_or_sell in ["enter", "enter arena", "enter the arena"]:
-            battle()
-            return
+        elif buy_or_sell == "exit":
+            print("Come again soon!")
+            print(f"{hero["name"]} exits the armory.")
+            break
+
+def inventory():
+    print(f"""
+        Hero Name: {hero["name"]}
+        Hero Race: {hero["race"]}
+        Max Health: {hero["max health"]}
+        Speed: {hero["speed"]}
+        Current Weapon: {hero["weapon"]}
+        Gold: {hero["gold"]}
+        Level: {hero["level"]}
+        Exp: {hero["exp"]}
+    """)
+
+    return
 
 def battle():
     hero["health"] = hero["max health"]
@@ -197,7 +227,6 @@ def battle():
                         break
         if hero["health"] <= 0 and enemy["health"] > 0:
             print(f"{hero["name"]} has been defeated and is carted out of the arena. ")
-            armory()
             break
         
         elif hero["health"] > 0 and enemy["health"] <= 0:
@@ -209,6 +238,7 @@ def battle():
             enemy["defeated"] = True
 
         if enemy["defeated"] == True:
+            level_up()
             print(f"{hero["name"]} is the winner! You gather your rewards and return to the armory.")
             break
 
@@ -239,5 +269,13 @@ def enemy_action(enemy):
     print(f"The {enemy["name"]} attacks!")
     hero["health"] -= enemy["damage"]
     print(f"Hero Health: {hero["health"]}")
+
+def level_up():
+    if hero["exp"] >= 5:
+        hero["speed"] += 3
+        hero["max health"] += 2
+        hero["level"] += 1
+        hero["exp"] -= 5
+        print(f"{hero["name"]} has leveled up! Max health and speed are increased.")
 
 main()
